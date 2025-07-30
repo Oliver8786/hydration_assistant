@@ -189,65 +189,76 @@
   </script>
   <!-- Place this near the bottom inside your <body>, after your existing scripts -->
 
-    <script type="module">
-  // Import Firebase functions from CDN
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
-  import { getAnalytics } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-analytics.js";
-  import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-messaging.js";
-  import { getFirestore, doc, setDoc, getDoc, updateDoc, arrayUnion } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore.js";
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
+    import { getAnalytics } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-analytics.js";
+    import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-auth.js";
+    import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore.js";
 
-  // Your Firebase config
-  const firebaseConfig = {
-    apiKey: "AIzaSyDJeBgL_axHygH8-FSdUVgG0cuCLhKfRLM",
-    authDomain: "hydration-assistant-123.firebaseapp.com",
-    projectId: "hydration-assistant-123",
-    storageBucket: "hydration-assistant-123.firebasestorage.app",
-    messagingSenderId: "461785610308",
-    appId: "1:461785610308:web:eff40693cf7a9acf98a411",
-    measurementId: "G-L5NRZ3HBGH"
-  };
+    const firebaseConfig = {
+      apiKey: "AIzaSyDJeBgL_axHygH8-FSdUVgG0cuCLhKfRLM",
+      authDomain: "hydration-assistant-123.firebaseapp.com",
+      projectId: "hydration-assistant-123",
+      storageBucket: "hydration-assistant-123.firebasestorage.app",
+      messagingSenderId: "461785610308",
+      appId: "1:461785610308:web:eff40693cf7a9acf98a411",
+      measurementId: "G-L5NRZ3HBGH"
+    };
 
-  // Initialize Firebase
-  const app = initializeApp(firebaseConfig);
-  const analytics = getAnalytics(app);
-  const messaging = getMessaging(app);
-  const db = getFirestore(app);
+    const app = initializeApp(firebaseConfig);
+    const analytics = getAnalytics(app);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
 
-  // Request permission and get FCM token for push notifications
-  async function requestPermissionAndSubscribe() {
-    try {
-      const permission = await Notification.requestPermission();
-      if (permission !== 'granted') {
-        console.log('Notification permission denied');
-        return;
+    let userDocRef;
+
+    signInAnonymously(auth)
+      .then(() => {
+        onAuthStateChanged(auth, async (user) => {
+          if (user) {
+            const uid = user.uid;
+            userDocRef = doc(db, "users", uid);
+
+            // Load saved settings
+            const snap = await getDoc(userDocRef);
+            if (snap.exists()) {
+              const data = snap.data();
+              document.getElementById("pet-name").value = data.petName || "Buddy";
+              document.getElementById("pet-title").textContent = `Meet ${data.petName || "Buddy"}!`;
+              document.body.style.backgroundColor = data.bgColor || "#f0f0f0";
+              document.getElementById("bg-color").value = data.bgColor || "#f0f0f0";
+            } else {
+              await setDoc(userDocRef, {
+                petName: "Buddy",
+                bgColor: "#f0f0f0",
+                health: 100,
+                hydrationLogs: []
+              });
+            }
+          }
+        });
+      })
+      .catch((error) => {
+        console.error("Auth error:", error);
+      });
+
+    // Save pet name
+    document.getElementById("pet-name").addEventListener("input", async (e) => {
+      const newName = e.target.value.trim() || "Buddy";
+      document.getElementById("pet-title").textContent = `Meet ${newName}!`;
+      if (userDocRef) {
+        await setDoc(userDocRef, { petName: newName }, { merge: true });
       }
+    });
 
-      const token = await getToken(messaging, { vapidKey: '<YOUR_PUBLIC_VAPID_KEY>' });
-      console.log('FCM Token:', token);
-
-      // Save token and initial pet data to Firestore (assuming single user)
-      const userDoc = doc(db, 'users', 'defaultUser');
-      await setDoc(userDoc, {
-        pushToken: token,
-        petName: 'Buddy',
-        bgColor: '#f0f0f0',
-        hydrationLogs: [],
-        health: 100,
-        nextReminder: null
-      }, { merge: true });
-
-    } catch (err) {
-      console.error('Error getting permission or token', err);
-    }
-  }
-
-  requestPermissionAndSubscribe();
-
-  // Listen for foreground messages
-  onMessage(messaging, (payload) => {
-    console.log('Message received. ', payload);
-    alert(payload.notification.title + '\n' + payload.notification.body);
-  });
-</script>
+    // Save background color
+    document.getElementById("bg-color").addEventListener("input", async (e) => {
+      const newColor = e.target.value;
+      document.body.style.backgroundColor = newColor;
+      if (userDocRef) {
+        await setDoc(userDocRef, { bgColor: newColor }, { merge: true });
+      }
+    });
+  </script>
 </body>
 </html>
