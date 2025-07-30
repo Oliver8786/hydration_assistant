@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Hydration Labrador</title>
+  <style>
+    body {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+      background-color: #f0f0f0;
+      font-family: sans-serif;
+      transition: background-color 0.3s ease;
+    }
+
+    h1 {
+      margin-top: 20px;
+    }
+
+    #settings-btn {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      font-size: 1.5rem;
+      background: none;
+      border: none;
+      cursor: pointer;
+    }
+
+    #settings-modal {
+      display: none;
+      position: absolute;
+      top: 80px;
+      right: 20px;
+      background-color: white;
+      border: 1px solid #ccc;
+      padding: 20px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+      z-index: 10;
+    }
+
+    #settings-modal input {
+      margin-bottom: 10px;
+      display: block;
+      width: 100%;
+    }
+
+    img {
+      max-width: 300px;
+      height: auto;
+      margin: 20px 0;
+    }
+
+    button {
+      margin: 10px;
+      padding: 10px 20px;
+      font-size: 1rem;
+      border-radius: 8px;
+      border: none;
+      background-color: #cccccc;
+      color: #000;
+      transition: background-color 0.3s ease;
+      cursor: pointer;
+    }
+
+    p {
+      margin-top: 10px;
+      font-size: 1.2rem;
+    }
+
+    .health-bar-container {
+      width: 80%;
+      height: 20px;
+      background-color: #ddd;
+      border-radius: 10px;
+      overflow: hidden;
+      margin-bottom: 10px;
+    }
+
+    .health-bar {
+      height: 100%;
+      width: 70%;
+      background-color: #4caf50;
+      transition: width 0.3s ease;
+    }
+  </style>
+</head>
+<body>
+  <button id="settings-btn">⚙️</button>
+
+  <div id="settings-modal">
+    <label for="pet-name">Pet Name:</label>
+    <input type="text" id="pet-name" value="Buddy" />
+    <label for="bg-color">Background Color:</label>
+    <input type="color" id="bg-color" value="#f0f0f0" />
+  </div>
+
+  <h1 id="pet-title">Meet Your Hydration Buddy!</h1>
+  <img src="static/square.png" alt="Labrador" />
+  <div class="health-bar-container">
+    <div class="health-bar" id="health-bar"></div>
+  </div>
+  <p id="health-value">Health: 70%</p>
+  <button>I Drank!</button>
+  <button>View Stats</button>
+  <p>Next drink in: X hours Y minutes</p>
+
+  <script>
+    const settingsBtn = document.getElementById('settings-btn');
+    const settingsModal = document.getElementById('settings-modal');
+    const petTitle = document.getElementById('pet-title');
+    const petNameInput = document.getElementById('pet-name');
+    const bgColorInput = document.getElementById('bg-color');
+
+    settingsBtn.onclick = () => {
+      settingsModal.style.display = settingsModal.style.display === 'block' ? 'none' : 'block';
+    };
+
+    petNameInput.oninput = () => {
+      const name = petNameInput.value.trim() || 'Your Hydration Buddy';
+      petTitle.textContent = `Meet ${name}!`;
+    };
+
+    bgColorInput.oninput = () => {
+      const bgColor = bgColorInput.value;
+      document.body.style.backgroundColor = bgColor;
+
+      const btnColor = getContrastingColor(bgColor);
+      document.querySelectorAll('button').forEach(btn => {
+        btn.style.backgroundColor = btnColor;
+        btn.style.color = getContrastingTextColor(btnColor);
+      });
+    };
+
+    // Computes a slightly darker or lighter variant for button background
+    function getContrastingColor(hex) {
+      let r = parseInt(hex.slice(1,3), 16);
+      let g = parseInt(hex.slice(3,5), 16);
+      let b = parseInt(hex.slice(5,7), 16);
+
+      const luminance = (0.299*r + 0.587*g + 0.114*b)/255;
+      const offset = 50;
+
+      if (luminance > 0.5) {
+        r = Math.max(0, r - offset);
+        g = Math.max(0, g - offset);
+        b = Math.max(0, b - offset);
+      } else {
+        r = Math.min(255, r + offset);
+        g = Math.min(255, g + offset);
+        b = Math.min(255, b + offset);
+      }
+
+      return `#${[r,g,b].map(x => x.toString(16).padStart(2, '0')).join('')}`;
+    }
+
+    // Ensures button text is readable (black or white depending on bg)
+    function getContrastingTextColor(hex) {
+      let r = parseInt(hex.slice(1,3), 16);
+      let g = parseInt(hex.slice(3,5), 16);
+      let b = parseInt(hex.slice(5,7), 16);
+      const luminance = (0.299*r + 0.587*g + 0.114*b)/255;
+      return luminance > 0.5 ? '#000' : '#fff';
+    }
+
+    const healthBar = document.getElementById('health-bar');
+    const healthValue = document.getElementById('health-value');
+    let currentHealth = 70;
+
+    function updateHealthBar() {
+      healthBar.style.width = `${currentHealth}%`;
+      healthValue.textContent = `Health: ${currentHealth}%`;
+    }
+
+    updateHealthBar();
+
+    document.addEventListener('click', (e) => {
+      if (
+        !settingsModal.contains(e.target) &&
+        e.target !== settingsBtn
+      ) {
+        settingsModal.style.display = 'none';
+      }
+    });
+  </script>
+  <!-- Place this near the bottom inside your <body>, after your existing scripts -->
+
+    <script type="module">
+  // Import Firebase functions from CDN
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
+  import { getAnalytics } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-analytics.js";
+  import { getMessaging, getToken, onMessage } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-messaging.js";
+  import { getFirestore, doc, setDoc, getDoc, updateDoc, arrayUnion } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore.js";
+
+  // Your Firebase config
+  const firebaseConfig = {
+    apiKey: "AIzaSyDJeBgL_axHygH8-FSdUVgG0cuCLhKfRLM",
+    authDomain: "hydration-assistant-123.firebaseapp.com",
+    projectId: "hydration-assistant-123",
+    storageBucket: "hydration-assistant-123.firebasestorage.app",
+    messagingSenderId: "461785610308",
+    appId: "1:461785610308:web:eff40693cf7a9acf98a411",
+    measurementId: "G-L5NRZ3HBGH"
+  };
+
+  // Initialize Firebase
+  const app = initializeApp(firebaseConfig);
+  const analytics = getAnalytics(app);
+  const messaging = getMessaging(app);
+  const db = getFirestore(app);
+
+  // Request permission and get FCM token for push notifications
+  async function requestPermissionAndSubscribe() {
+    try {
+      const permission = await Notification.requestPermission();
+      if (permission !== 'granted') {
+        console.log('Notification permission denied');
+        return;
+      }
+
+      const token = await getToken(messaging, { vapidKey: '<YOUR_PUBLIC_VAPID_KEY>' });
+      console.log('FCM Token:', token);
+
+      // Save token and initial pet data to Firestore (assuming single user)
+      const userDoc = doc(db, 'users', 'defaultUser');
+      await setDoc(userDoc, {
+        pushToken: token,
+        petName: 'Buddy',
+        bgColor: '#f0f0f0',
+        hydrationLogs: [],
+        health: 100,
+        nextReminder: null
+      }, { merge: true });
+
+    } catch (err) {
+      console.error('Error getting permission or token', err);
+    }
+  }
+
+  requestPermissionAndSubscribe();
+
+  // Listen for foreground messages
+  onMessage(messaging, (payload) => {
+    console.log('Message received. ', payload);
+    alert(payload.notification.title + '\n' + payload.notification.body);
+  });
+</script>
+</body>
+</html>
